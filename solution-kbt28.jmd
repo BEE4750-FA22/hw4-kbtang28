@@ -1,6 +1,6 @@
 ---
 title: "BEE 4750/5750 Homework 4"
-author: "Your name here (your netID here)"
+author: "Katerina Tang (kbt28)"
 date: `j import Dates; Dates.Date(Dates.now())`
 weave_options:
     term: false
@@ -19,11 +19,57 @@ Pkg.instantiate()
 # Problem 1
 
 ## Problem 1.1
+To find the overall recycling fraction for the waste produced by each city, we multiply the fraction of each type of waste by its recycling rate and sum over the different types of waste:
+```julia
+composition = [.15, .40, .05, .03, .02, .05, .18, .04, .02, .02, .01, .03]
+recycling_rate = [0, 0.55, 0.15, .1, 0, .3, .4, .6, .75, .8, .5, 0]
+ash_rate = [.08, .07, .05, .1, .15, .02, .02, 1, 1, 1, 1, .7]
+
+round(sum(composition .* recycling_rate); digits=6)
+```
+
+To find the overall ash fraction for the waste produced by each city, we multiply the fraction of each type of waste by its ash content and sum over the different types of waste:
+```julia
+round(sum(composition .* ash_rate); digits=6)
+```
+
+To find the ash content of the recycling residuals, we look at only components with a recycling rate greater than zero:
+```julia
+round(sum(composition[recycling_rate .!= 0] .* ash_rate[recycling_rate .!= 0])/sum(composition[recycling_rate .!= 0]); digits=6)
+```
 
 ## Problem 1.2
+Let WTE facility be disposal facility 1, MRF be disposal facility 2, and LF be disposal facility 3.
+Our decision variables are: $W_{ij}$, the waste (Mg/d) transported from city $i$ to disposal $j$; 
+$R_{kj}$, the residual waste (Mg/d) transported from disposal $k$ to disposal $j$; 
+and $Y_j$, the operational status of disposal $j$ on a given day (i.e., $Y_{j}=0$ or $Y_j=1$).
 
 ## Problem 1.3
+The WTE facility costs are
+```math
+2500Y_1 + 60(W_{11} + W_{21} + R_{21}),
+```
+the MRF costs are
+```math
+1500Y_2 + 7(W_{12} + W_{22}) + 45(0.3775)(W_{12} + W_{22}),
+```
+and the LF costs are
+```math
+2000Y_3 + 50(W_{13} + W_{23} + R_{13} + R_{23}).
+```
+Furthermore, the transportation costs are
+```math
+1.5\left(15W_{11} + 5W_{12} + 30W_{13} + 10W_{21} + 15W_{22} + 25W_{23} + 18R_{13} + 15R_{21} + 32R_{23}\right)
+```
 
+We wish to minimize the total cost, which is given by
+```math
+\begin{align*}
+82.5W_{11} + 31.4875W_{12} + 95W_{13} + 75W_{21} + 46.4875W_{22} + 87.5W_{23}\\
++ 77R_{13} + 82.5R_{21} + 98R_{23}\\
++ 2500Y_1 + 1500Y_2 + 2000Y_3 
+\end{align*}
+```
 ## Problem 1.4
 
 ## Problem 1.5

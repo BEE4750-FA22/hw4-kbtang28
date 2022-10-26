@@ -1,0 +1,41 @@
+---
+title: "BEE 4750/5750 Homework 4"
+author: "Your name here (your netID here)"
+date: `j import Dates; Dates.Date(Dates.now())`
+weave_options:
+    term: false
+    results: tex
+    cache: off
+---
+
+<!-- This setups the environment and installs packages, but doesn't appear in the generated document -->
+<!-- You shouldn't need to modify this -->
+```julia; echo = false; results = "hidden"
+using Pkg
+Pkg.activate(".")
+Pkg.instantiate()
+```
+
+# Problem 1
+
+## Problem 1.1
+
+## Problem 1.2
+
+## Problem 1.3
+
+## Problem 1.4
+
+## Problem 1.5
+
+## Problem 1.6
+
+# Problem 2
+
+## Problem 2.1
+
+## Problem 2.2
+
+## Problem 2.3
+
+# References

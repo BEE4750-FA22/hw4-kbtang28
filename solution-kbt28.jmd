@@ -67,11 +67,49 @@ We wish to minimize the total cost, which is given by
 \begin{align*}
 82.5W_{11} + 31.4875W_{12} + 95W_{13} + 75W_{21} + 46.4875W_{22} + 87.5W_{23}\\
 + 77R_{13} + 82.5R_{21} + 98R_{23}\\
-+ 2500Y_1 + 1500Y_2 + 2000Y_3 
++ 2500Y_1 + 1500Y_2 + 2000Y_3.
 \end{align*}
 ```
 ## Problem 1.4
+We must dispose of all the waste from each city, so
+```math
+W_{11} + W_{12} + W_{13}=100
+```
+and 
+```math
+W_{21} + W_{22} + W_{23}=170.
+```
+There is also a capacity limit at each disposal site, so
+```math
+\begin{align*}
+W_{11} + W_{21} + R_{21}&\leq 150,\\
+W_{12} + W_{22} &\leq 350,
+\end{align*}
+```
+and
+```math
+W_{13} + W_{23} + R_{13} + R_{23}\leq 200.
+```
 
+There are also some basic constraints coming from how the disposal sites work.
+Since the landfill is the final waste destination, $R_{31} + R_{32} + R{33} = 0$.
+It doesn't make sense to talk about waste moving from a disposal site to the same disposal site, so $R_{11} = R_{22} = R_{33} = 0$.
+And since ash can't be recycled, $R_{12}=0$.
+
+We must also take into account the recycling rates and ash content. As calculated in Problem 1.1, we should have
+```math
+R_{21} + R_{23} = (1-0.3775)(W_{12} + W_{22})
+```
+and
+```math
+R_{13} = 0.1641(W_{11} + W_{21}) + 0.160125R_{21}.
+```
+Finally, $W_{ij}$ and $R_{ij}$ must be nonnegative for all $i$ and $j$, and $Y_1$, $Y_2$, and $Y_3$ satisfy the following:
+```math
+Y_1 = \begin{cases} 0 & \text{ if $W_{11}+W_{21}+R_{21} = 0$}\\ 1 & \text{ else}\end{cases}\\
+Y_2 = \begin{cases} 0 & \text{ if $W_{12}+W_{22} = 0$}\\ 1 & \text{ else}\end{cases}\\
+Y_3 = 1
+```
 ## Problem 1.5
 
 ## Problem 1.6
@@ -79,6 +117,22 @@ We wish to minimize the total cost, which is given by
 # Problem 2
 
 ## Problem 2.1
+We have to reformulate our objective function; the decision variables and constraints should not change. The new WTE facility costs are
+```math
+2500Y_1 + 75(W_{11} + W_{21} + R{21}),
+```
+and the new transportation costs are 
+```math
+2\left(15W_{11} + 5W_{12} + 30W_{13} + 10W_{21} + 15W_{22} + 25W_{23} + 18R_{13} + 15R_{21} + 32R_{23}\right).
+```
+This means our new objective function is
+```math
+\begin{align*}
+105W_{11} + 33.9875W_{12} + 110W_{13} + 90W_{21} + 53.9875W_{22} + 100W_{23}\\
++ 86R_{13} + 100R_{21} + 114R_{23}\\
++ 2500Y_1 + 1500Y_2 + 2000Y_3.
+\end{align*}
+```
 
 ## Problem 2.2
 

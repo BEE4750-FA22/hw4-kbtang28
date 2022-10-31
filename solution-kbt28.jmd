@@ -14,6 +14,9 @@ weave_options:
 using Pkg
 Pkg.activate(".")
 Pkg.instantiate()
+
+Pkg.add("GraphRecipes")
+using GraphRecipes, JuMP, Cbc, Plots
 ```
 
 # Problem 1
@@ -25,17 +28,17 @@ composition = [.15, .40, .05, .03, .02, .05, .18, .04, .02, .02, .01, .03]
 recycling_rate = [0, 0.55, 0.15, .1, 0, .3, .4, .6, .75, .8, .5, 0]
 ash_rate = [.08, .07, .05, .1, .15, .02, .02, 1, 1, 1, 1, .7]
 
-round(sum(composition .* recycling_rate); digits=6)
+overall_recycling = round(sum(composition .* recycling_rate); digits=4)
 ```
 
 To find the overall ash fraction for the waste produced by each city, we multiply the fraction of each type of waste by its ash content and sum over the different types of waste:
 ```julia
-round(sum(composition .* ash_rate); digits=6)
+overall_ash = round(sum(composition .* ash_rate); digits=4)
 ```
 
 To find the ash content of the recycling residuals, we look at only components with a recycling rate greater than zero:
 ```julia
-round(sum(composition[recycling_rate .!= 0] .* ash_rate[recycling_rate .!= 0])/sum(composition[recycling_rate .!= 0]); digits=6)
+recycled_ash = round(sum(composition.*(1 .- recycling_rate).*ash_rate)/sum(composition.*(1 .- recycling_rate)); digits=4)
 ```
 
 ## Problem 1.2
@@ -65,7 +68,7 @@ Furthermore, the transportation costs are
 We wish to minimize the total cost, which is given by
 ```math
 \begin{align*}
-82.5W_{11} + 31.4875W_{12} + 95W_{13} + 75W_{21} + 46.4875W_{22} + 87.5W_{23}\\
+82.5W_{11} + 31.5W_{12} + 95W_{13} + 75W_{21} + 46.5W_{22} + 87.5W_{23}\\
 + 77R_{13} + 82.5R_{21} + 98R_{23}\\
 + 2500Y_1 + 1500Y_2 + 2000Y_3.
 \end{align*}
@@ -81,6 +84,7 @@ W_{21} + W_{22} + W_{23}=170.
 ```
 There is also a capacity limit at each disposal site, so
 ```math
+
 \begin{align*}
 W_{11} + W_{21} + R_{21}&\leq 150,\\
 W_{12} + W_{22} &\leq 350,
@@ -92,7 +96,7 @@ W_{13} + W_{23} + R_{13} + R_{23}\leq 200.
 ```
 
 There are also some basic constraints coming from how the disposal sites work.
-Since the landfill is the final waste destination, $R_{31} + R_{32} + R{33} = 0$.
+Since the landfill is the final waste destination, $R_{31} + R_{32} + R_{33} = 0$.
 It doesn't make sense to talk about waste moving from a disposal site to the same disposal site, so $R_{11} = R_{22} = R_{33} = 0$.
 And since ash can't be recycled, $R_{12}=0$.
 
@@ -102,7 +106,7 @@ R_{21} + R_{23} = (1-0.3775)(W_{12} + W_{22})
 ```
 and
 ```math
-R_{13} = 0.1641(W_{11} + W_{21}) + 0.160125R_{21}.
+R_{13} = 0.1641(W_{11} + W_{21}) + 0.1386R_{21}.
 ```
 Finally, $W_{ij}$ and $R_{ij}$ must be nonnegative for all $i$ and $j$, and $Y_1$, $Y_2$, and $Y_3$ satisfy the following:
 ```math
@@ -111,9 +115,55 @@ Y_2 = \begin{cases} 0 & \text{ if $W_{12}+W_{22} = 0$}\\ 1 & \text{ else}\end{ca
 Y_3 = 1
 ```
 ## Problem 1.5
+```julia
+waste = Model(Cbc.Optimizer)
+I = 1:2 # number of cities
+J = 1:3 # number of disposal sites
 
+@variable(waste, W[i in I, j in J] >= 0)
+@variable(waste, R[k in J, j in J] >= 0)
+@variable(waste, Y[j in J], Bin)
+
+@objective(waste, Min, sum([82.5 31.5 95; 75 46.5 87.5].*W) + sum([0 0 77; 82.5 0 98; 0 0 0].*R) + sum([2500 1500 2000].*Y))
+
+city_out = [100; 170]
+
+@constraint(waste, city[i in I], sum(W[i, :]) == city_out[i])
+@constraint(waste, wte, W[1, 1] + W[2, 1] + R[2, 1] <= 150)
+@constraint(waste, mrf, W[1, 2] + W[2, 2] <= 350)
+@constraint(waste, lf, W[1, 3] + W[2, 3] + R[1, 3] + R[2, 3] <= 200)
+@constraint(waste, resid1, R[2, 1] + R[2, 3] == (1-overall_recycling)*(W[1, 2] + W[2, 2]))
+@constraint(waste, resid2, R[1, 3] == overall_ash*(W[1, 1] + W[2, 1]) + recycled_ash*R[2, 1])
+@constraint(waste, noresids, sum(R[j, j] for j in J) + R[1, 2] + R[3, 1] + R[3, 2] == 0)
+@constraint(waste, commit1, !Y[1] => {W[1, 1] + W[2, 1] + R[2, 1] == 0})
+@constraint(waste, commit2, !Y[2] => {W[1, 2] + W[2, 2] == 0})
+@constraint(waste, commit3, Y[3] == 1)
+
+set_silent(waste)
+optimize!(waste)
+```
 ## Problem 1.6
+The optimal solution will cost `j round(objective_value(waste), digits=2)` dollars per day. 
+The MRF will not be used.
+A diagram showing the flow of waste between cities and the disposal facilities in this optimal solution is below.
+```julia; echo=false
+A = [0 0 0 0 1 1 0 0
+     0 0 0 0 0 0 1 0
+     0 0 0 0 0 0 0 1
+     0 0 0 0 0 0 0 0
+     0 0 1 0 0 0 0 0
+     0 0 0 1 0 0 0 0
+     0 0 0 1 0 0 0 0
+     0 0 0 1 0 0 0 0];
+	
+names = ["City 1", "City 2", "WTE", "LF", string(round(value.(W)[1, 1], digits=2))*"Mg/d", string(round(value.(W)[1, 3], digits=2))*"Mg/d", string(round(value.(W)[2, 3], digits=2))*"Mg/d", string(round(value.(R)[1, 3], digits=2))*"Mg/d"];
+shapes=[:hexagon, :hexagon, :rect, :rect, :rect, :rect, :rect, :rect, :rect];
+xpos = [-1 1 -1.5 1.5 -1.5 0 1.5 0];
+ypos = [1 1 -1 -1 0 0 0 -1.2];
 
+graphplot(A, names=names, markersize=0.35, markerstrokewidth=0, markershapes=shapes, markercolor=:white, x=xpos, y=ypos)
+```
+We see that City 1 sends most of its waste to the WTE first, while City 2 sends all of its waste straight to the landfill.
 # Problem 2
 
 ## Problem 2.1
@@ -128,14 +178,51 @@ and the new transportation costs are
 This means our new objective function is
 ```math
 \begin{align*}
-105W_{11} + 33.9875W_{12} + 110W_{13} + 90W_{21} + 53.9875W_{22} + 100W_{23}\\
+105W_{11} + 34W_{12} + 110W_{13} + 90W_{21} + 54W_{22} + 100W_{23}\\
 + 86R_{13} + 100R_{21} + 114R_{23}\\
 + 2500Y_1 + 1500Y_2 + 2000Y_3.
 \end{align*}
 ```
 
 ## Problem 2.2
+```julia
+waste_carbontax = Model(Cbc.Optimizer)
+I = 1:2 # number of cities
+J = 1:3 # number of disposal sites
+
+@variable(waste_carbontax, W[i in I, j in J] >= 0)
+@variable(waste_carbontax, R[k in J, j in J] >= 0)
+@variable(waste_carbontax, Y[j in J], Bin)
+
+@objective(waste_carbontax, Min, sum([105 34 110; 95 54 100].*W) + sum([0 0 86; 105 0 114; 0 0 0].*R) + sum([2500 1500 2000].*Y))
+
+city_out = [100; 170]
+
+@constraint(waste_carbontax, city[i in I], sum(W[i, :]) == city_out[i])
+@constraint(waste_carbontax, wte, W[1, 1] + W[2, 1] + R[2, 1] <= 150)
+@constraint(waste_carbontax, mrf, W[1, 2] + W[2, 2] <= 350)
+@constraint(waste_carbontax, lf, W[1, 3] + W[2, 3] + R[1, 3] + R[2, 3] <= 200)
+@constraint(waste_carbontax, resid1, R[2, 1] + R[2, 3] == (1-overall_recycling)*(W[1, 2] + W[2, 2]))
+@constraint(waste_carbontax, resid2, R[1, 3] == overall_ash*(W[1, 1] + W[2, 1]) + recycled_ash*R[2, 1])
+@constraint(waste_carbontax, noresids, sum(R[j, j] for j in J) + R[1, 2] + R[3, 1] + R[3, 2] == 0)
+@constraint(waste_carbontax, commit1, !Y[1] => {W[1, 1] + W[2, 1] + R[2, 1] == 0})
+@constraint(waste_carbontax, commit2, !Y[2] => {W[1, 2] + W[2, 2] == 0})
+@constraint(waste_carbontax, commit3, Y[3] == 1)
+
+set_silent(waste_carbontax)
+optimize!(waste_carbontax)
+```
+```julia
+value.(Y)
+```
+```julia
+value.(W)
+```
+```julia
+value.(R)
+```
 
 ## Problem 2.3
-
+The new optimal solution will cost `j round(objective_value(waste_carbontax), digits=2)` dollars per day.
+The plan is the same as the original plan?
 # References

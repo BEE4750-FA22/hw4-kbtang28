@@ -21,8 +21,8 @@ J = 1:3 # number of disposal sites
 @variable(waste, R[k in J, j in J] >= 0)
 @variable(waste, Y[j in J], Bin)
 
-# @objective(waste, Min, sum([82.5 31.5 95; 75 46.5 87.5].*W) + sum([0 0 77; 82.5 0 98; 0 0 0].*R) + sum([2500 1500 2000].*Y)) # original
-@objective(waste, Min, sum([105 34 110; 95 54 100].*W) + sum([0 0 86; 105 0 114; 0 0 0].*R) + sum([2500 1500 2000].*Y)) # carbon tax adjusted
+# @objective(waste, Min, sum([82.5 31.5 95; 75 46.5 87.5].*W) + sum([0 0 77; 82.5 0 98; 0 0 0].*R) + sum([2500; 1500; 2000].*Y)) # original
+@objective(waste, Min, sum([105 34 110; 95 54 100].*W) + sum([0 0 86; 105 0 114; 0 0 0].*R) + sum([2500; 1500; 2000].*Y)) # carbon tax adjusted
 
 
 city_out = [100; 170]

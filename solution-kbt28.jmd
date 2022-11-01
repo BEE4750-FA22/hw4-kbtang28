@@ -96,7 +96,7 @@ W_{13} + W_{23} + R_{13} + R_{23}\leq 200.
 ```
 
 There are also some basic constraints coming from how the disposal sites work.
-Since the landfill is the final waste destination, $R_{31} + R_{32} + R_{33} = 0$.
+Since the landfill is the final waste destination, $R_{31} + R_{32} = 0$.
 It doesn't make sense to talk about waste moving from a disposal site to the same disposal site, so $R_{11} = R_{22} = R_{33} = 0$.
 And since ash can't be recycled, $R_{12}=0$.
 
@@ -124,7 +124,7 @@ J = 1:3 # number of disposal sites
 @variable(waste, R[k in J, j in J] >= 0)
 @variable(waste, Y[j in J], Bin)
 
-@objective(waste, Min, sum([82.5 31.5 95; 75 46.5 87.5].*W) + sum([0 0 77; 82.5 0 98; 0 0 0].*R) + sum([2500 1500 2000].*Y))
+@objective(waste, Min, sum([82.5 31.5 95; 75 46.5 87.5].*W) + sum([0 0 77; 82.5 0 98; 0 0 0].*R) + sum([2500; 1500; 2000].*Y))
 
 city_out = [100; 170]
 
@@ -164,6 +164,7 @@ ypos = [1 1 -1 -1 0 0 0 -1.2];
 graphplot(A, names=names, markersize=0.35, markerstrokewidth=0, markershapes=shapes, markercolor=:white, x=xpos, y=ypos)
 ```
 We see that City 1 sends most of its waste to the WTE first, while City 2 sends all of its waste straight to the landfill.
+
 # Problem 2
 
 ## Problem 2.1
@@ -194,7 +195,7 @@ J = 1:3 # number of disposal sites
 @variable(waste, R[k in J, j in J] >= 0)
 @variable(waste, Y[j in J], Bin)
 
-@objective(waste, Min, sum([105 34 110; 95 54 100].*W) + sum([0 0 86; 105 0 114; 0 0 0].*R) + sum([2500 1500 2000].*Y))
+@objective(waste, Min, sum([105 34 110; 95 54 100].*W) + sum([0 0 86; 105 0 114; 0 0 0].*R) + sum([2500; 1500; 2000].*Y))
 
 city_out = [100; 170]
 
@@ -212,17 +213,30 @@ city_out = [100; 170]
 set_silent(waste)
 optimize!(waste)
 ```
-```julia
-value.(Y)
-```
-```julia
-value.(W)
-```
-```julia
-value.(R)
-```
 
 ## Problem 2.3
 The new optimal solution will cost `j round(objective_value(waste), digits=2)` dollars per day.
-The plan is the same as the original plan?
+Now the MRF will is used while the WTE facility has become prohibitively expensive and is no longer used.
+A diagram showing the flow of waste between cities and the disposal facilities in this optimal solution is below.
+```julia; echo=false
+A = [0 0 0 0 1 0 0 0;
+     0 0 0 0 0 1 1 0;
+     0 0 0 0 0 0 0 1;
+     0 0 0 0 0 0 0 0
+     0 0 1 0 0 0 0 0
+     0 0 1 0 0 0 0 0
+     0 0 0 1 0 0 0 0
+     0 0 0 1 0 0 0 0];
+	
+names = ["City 1", "City 2", "MRF", "LF", string(round(value.(W)[1, 2], digits=2))*"Mg/d", string(round(value.(W)[2, 2], digits=2))*"Mg/d", string(round(value.(W)[2, 3], digits=2))*"Mg/d", string(round(value.(R)[2, 3], digits=2))*"Mg/d"];
+shapes=[:hexagon, :hexagon, :rect, :rect, :rect, :rect, :rect, :rect, :rect];
+xpos = [-1 1 -1.5 1.5 -1.5 0 1.5 0];
+ypos = [1 1 -1 -1 0 0 0 -1.2];
+
+graphplot(A, names=names, markersize=0.35, markerstrokewidth=0, markershapes=shapes, markercolor=:white, x=xpos, y=ypos)
+```
+We see that City 1 sends all of its waste to the MRF, while City 2 sends about half of its waste to the MRF first and the remaining half straight to the landfill.
+
 # References
+
+I based my code on the example in the Lecture 15 notes on mixed integer programming.
